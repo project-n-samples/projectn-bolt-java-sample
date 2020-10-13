@@ -8,17 +8,30 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-public class BoltS3ListObjsV2Handler implements RequestHandler<String, Boolean> {
+public class BoltS3ListObjsV2Handler implements RequestHandler<Map<String,String>, List<String>> {
 
     @Override
-    public Boolean handleRequest(String event, Context context) {
+    public List<String> handleRequest(Map<String,String> event, Context context) {
 
-        String bucketName = event;
-        S3Client s3 = BoltS3Client.builder()
-                .build();
+        String bucketName = event.get("bucket");
+        String requestType = event.get("requestType");
 
+        S3Client s3 = null;
+        if (requestType != null && !requestType.isEmpty()) {
+            if (requestType.equals("bolt")) {
+                s3 = BoltS3Client.builder().build();
+            } else if (requestType.equals("s3")) {
+                s3 = S3Client.builder().build();
+            }
+        } else {
+            s3 = BoltS3Client.builder().build();
+        }
+
+        List<String> objList = new ArrayList<>();
         try {
             ListObjectsV2Request req = ListObjectsV2Request.builder().bucket(bucketName).build();
             ListObjectsV2Response resp;
@@ -28,12 +41,11 @@ public class BoltS3ListObjsV2Handler implements RequestHandler<String, Boolean> 
             List<S3Object> objects = resp.contents();
 
             for (S3Object object : objects) {
-                System.out.println(object.key());
+                objList.add(object.key());
             }
         } catch (S3Exception e) {
             System.err.println(e.awsErrorDetails().errorMessage());
-            return false;
         }
-        return true;
+        return objList;
     }
 }
