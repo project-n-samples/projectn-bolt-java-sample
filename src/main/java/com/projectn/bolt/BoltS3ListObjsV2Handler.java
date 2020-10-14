@@ -11,11 +11,12 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
-public class BoltS3ListObjsV2Handler implements RequestHandler<Map<String,String>, List<String>> {
+public class BoltS3ListObjsV2Handler implements RequestHandler<Map<String,String>, Map<String,String>> {
 
     @Override
-    public List<String> handleRequest(Map<String,String> event, Context context) {
+    public Map<String,String> handleRequest(Map<String,String> event, Context context) {
 
         String bucketName = event.get("bucket");
         String requestType = event.get("requestType");
@@ -39,13 +40,20 @@ public class BoltS3ListObjsV2Handler implements RequestHandler<Map<String,String
             resp = s3.listObjectsV2(req);
 
             List<S3Object> objects = resp.contents();
-
             for (S3Object object : objects) {
                 objList.add(object.key());
             }
+            Map<String,String> map = new HashMap<String, String>() {{
+                put("objects", objects.toString());
+            }};
+            return map;
         } catch (S3Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
+            String msg = e.awsErrorDetails().errorMessage();
+            System.err.println(msg);
+            Map<String,String> map = new HashMap<String, String>() {{
+                put("errorMessage", msg);
+            }};
+            return map;
         }
-        return objList;
     }
 }

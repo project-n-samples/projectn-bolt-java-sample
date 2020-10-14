@@ -8,11 +8,16 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.util.Map;
+import java.util.HashMap;
 
-public class BoltS3GetObjHandler implements RequestHandler<Map<String,String>, String> {
+import javax.xml.bind.DatatypeConverter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+public class BoltS3GetObjHandler implements RequestHandler<Map<String,String>, Map<String,String>> {
 
     @Override
-    public String handleRequest(Map<String,String> event, Context context) {
+    public Map<String,String> handleRequest(Map<String,String> event, Context context) {
 
         String bucket = event.get("bucket");
         String key = event.get("key");
@@ -30,12 +35,36 @@ public class BoltS3GetObjHandler implements RequestHandler<Map<String,String>, S
         }
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucket).key(key).build();
-        String response = "";
         try {
-            response = s3.getObject(getObjectRequest, ResponseTransformer.toBytes()).asUtf8String();
+
+            byte[] res = s3.getObject(getObjectRequest, ResponseTransformer.toBytes()).asByteArray();
+
+            // Parse the MD5 of the returned object
+            MessageDigest md = MessageDigest.getInstance("MD5"); 
+            md.update(res);
+	        String md5 = DatatypeConverter
+            .printHexBinary(md.digest()).toUpperCase();
+
+            Map<String,String> map = new HashMap<String, String>() {{
+                put("md5", md5);
+            }};
+            return map;
         } catch (S3Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
+            String msg = e.awsErrorDetails().errorMessage();
+            System.err.println(msg);
+            Map<String,String> map = new HashMap<String, String>() {{
+                put("errorMessage", msg);
+            }};
+            return map;
+        } catch (NoSuchAlgorithmException e) {
+            String msg = e.toString();
+            System.err.println(msg);
+            Map<String,String> map = new HashMap<String, String>() {{
+                put("errorMessage", msg);
+            }};
+            return map;
         }
-        return response;
     }
 }
+
+    
