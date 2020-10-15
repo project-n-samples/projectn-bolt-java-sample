@@ -127,9 +127,10 @@ public class BoltS3OpsHandler implements RequestHandler<Map<String,String>, Map<
             put( "Expiration", res.expiration());
             put( "lastModified", res.lastModified().toString() );
             put( "ContentLength", res.contentLength().toString() );
+            put( "ContentEncoding", res.contentEncoding() );
             put( "ETag", res.eTag() );
             put( "VersionId", res.versionId() );
-            put( "StorageClass", res.storageClass().toString() );
+            put( "StorageClass", res.storageClass() != null ? res.storageClass().toString() : "" );
         }};
         return map;
     }
