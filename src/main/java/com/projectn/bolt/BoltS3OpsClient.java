@@ -36,8 +36,7 @@ public class BoltS3OpsClient {
         s3 = boltS3 = null;
     }
 
-    public Map<String, String> processEvent(Map<String, String> event) throws SdkClientException,
-            S3Exception {
+    public Map<String, String> processEvent(Map<String, String> event) {
 
         BoltS3OpsClient.RequestType requestType = RequestType.valueOf(event.get("requestType").toUpperCase());
         String sdkTypeStr = event.get("sdkType");
@@ -80,7 +79,7 @@ public class BoltS3OpsClient {
                 put("errorMessage", msg);
                 put("errorCode", code);
             }};
-        } catch (SdkClientException e) {
+        } catch (Exception e) {
             String msg = e.toString();
             System.err.println(msg);
             respMap = new HashMap<String, String>() {{
@@ -90,66 +89,48 @@ public class BoltS3OpsClient {
         return respMap;
     }
 
-    private Map<String, String> getObject(String bucket, String key) throws SdkClientException,
-            S3Exception {
-
+    private Map<String, String> getObject(String bucket, String key) throws Exception {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
-        try {
-            // Get Object.
-            ResponseBytes<GetObjectResponse> respBytes = s3.getObjectAsBytes(getObjectRequest);
+        // Get Object.
+        ResponseBytes<GetObjectResponse> respBytes = s3.getObjectAsBytes(getObjectRequest);
 
-            // Parse the MD5 of the returned object
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            String md5;
+        // Parse the MD5 of the returned object
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        String md5;
 
-            // If Object is gzip encoded, compute MD5 on the decompressed object.
-            String encoding = respBytes.response().contentEncoding();
-            System.out.println("Encoding:" + encoding);
-            if ((encoding != null && encoding.equalsIgnoreCase("gzip")) ||
-                    key.endsWith(".gz")) {
+        // If Object is gzip encoded, compute MD5 on the decompressed object.
+        String encoding = respBytes.response().contentEncoding();
+        System.out.println("Encoding:" + encoding);
+        if ((encoding != null && encoding.equalsIgnoreCase("gzip")) ||
+                key.endsWith(".gz")) {
 
-                // MD5 of the object after gzip decompression.
-                GZIPInputStream gis = new GZIPInputStream(respBytes.asInputStream());
-                ByteArrayOutputStream output = new ByteArrayOutputStream();
-                byte[] buffer = new byte[1024];
-                int len;
+            // MD5 of the object after gzip decompression.
+            GZIPInputStream gis = new GZIPInputStream(respBytes.asInputStream());
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int len;
 
-                while ((len = gis.read(buffer)) > 0) {
-                    output.write(buffer, 0, len);
-                }
-
-                md.update(output.toByteArray());
-                md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
-                output.close();
-                gis.close();
-            } else {
-                md.update(respBytes.asByteArray());
-                md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
+            while ((len = gis.read(buffer)) > 0) {
+                output.write(buffer, 0, len);
             }
 
-            Map<String,String> map = new HashMap<String, String>() {{
-                put("md5", md5);
-            }};
-            return map;
-        } catch (NoSuchAlgorithmException e) {
-            String msg = e.toString();
-            System.err.println(msg);
-            Map<String,String> map = new HashMap<String, String>() {{
-                put("errorMessage", msg);
-            }};
-            return map;
-        } catch (IOException e) {
-            String msg = e.toString();
-            System.err.println(msg);
-            Map<String,String> map = new HashMap<String, String>() {{
-                put("errorMessage", msg);
-            }};
-            return map;
+            md.update(output.toByteArray());
+            md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
+            output.close();
+            gis.close();
+        } else {
+            md.update(respBytes.asByteArray());
+            md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
         }
+
+        Map<String,String> map = new HashMap<String, String>() {{
+            put("md5", md5);
+        }};
+        return map;
     }
 
-    private Map<String, String> listObjectsV2(String bucket) throws SdkClientException, S3Exception {
+    private Map<String, String> listObjectsV2(String bucket) throws Exception {
 
         ListObjectsV2Request req = ListObjectsV2Request.builder().bucket(bucket).build();
         ListObjectsV2Response resp;
@@ -163,8 +144,7 @@ public class BoltS3OpsClient {
         return map;
     }
 
-    private Map<String, String> headObject(String bucket, String key) throws SdkClientException,
-            S3Exception {
+    private Map<String, String> headObject(String bucket, String key) throws Exception {
 
         HeadObjectRequest headObjectRequest = HeadObjectRequest.builder().bucket(bucket).key(key).build();
 
@@ -181,87 +161,69 @@ public class BoltS3OpsClient {
         return map;
     }
 
-    private Map<String, String> validateObjectMD5(String bucket, String key) throws SdkClientException,
-            S3Exception {
+    private Map<String, String> validateObjectMD5(String bucket, String key) throws Exception {
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
-        try {
-            // Get Object from Bolt.
-            ResponseBytes<GetObjectResponse> boltS3ResponseBytes = boltS3.getObjectAsBytes(getObjectRequest);
-            // Get object from S3.
-            ResponseBytes<GetObjectResponse> s3ResponseBytes = s3.getObjectAsBytes(getObjectRequest);
+        // Get Object from Bolt.
+        ResponseBytes<GetObjectResponse> boltS3ResponseBytes = boltS3.getObjectAsBytes(getObjectRequest);
+        // Get object from S3.
+        ResponseBytes<GetObjectResponse> s3ResponseBytes = s3.getObjectAsBytes(getObjectRequest);
 
-            // Parse the MD5 of the returned object
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            String s3Md5, boltS3Md5;
+        // Parse the MD5 of the returned object
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        String s3Md5, boltS3Md5;
 
-            // If Object is gzip encoded, compute MD5 on the decompressed object.
-            String encoding = s3ResponseBytes.response().contentEncoding();
-            if ((encoding != null && encoding.equalsIgnoreCase("gzip")) ||
-                    key.endsWith(".gz")) {
-                GZIPInputStream gis;
-                ByteArrayOutputStream output;
-                byte[] buffer = new byte[1024];
-                int len;
+        // If Object is gzip encoded, compute MD5 on the decompressed object.
+        String encoding = s3ResponseBytes.response().contentEncoding();
+        if ((encoding != null && encoding.equalsIgnoreCase("gzip")) ||
+                key.endsWith(".gz")) {
+            GZIPInputStream gis;
+            ByteArrayOutputStream output;
+            byte[] buffer = new byte[1024];
+            int len;
 
-                // MD5 of the S3 object after gzip decompression.
-                gis = new GZIPInputStream(s3ResponseBytes.asInputStream());
-                output = new ByteArrayOutputStream();
+            // MD5 of the S3 object after gzip decompression.
+            gis = new GZIPInputStream(s3ResponseBytes.asInputStream());
+            output = new ByteArrayOutputStream();
 
-                while ((len = gis.read(buffer)) > 0) {
-                    output.write(buffer, 0, len);
-                }
-
-                md.update(output.toByteArray());
-                s3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
-                output.close();
-                gis.close();
-
-                // MD5 of the Bolt object after gzip decompression.
-                gis = new GZIPInputStream(boltS3ResponseBytes.asInputStream());
-                output = new ByteArrayOutputStream();
-
-                while ((len = gis.read(buffer)) > 0) {
-                    output.write(buffer, 0, len);
-                }
-
-                md.reset();
-                md.update(output.toByteArray());
-                boltS3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
-                output.close();
-                gis.close();
-            } else  {
-                // MD5 of the S3 object
-                md.update(s3ResponseBytes.asByteArray());
-                s3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
-
-                //MD5 of the Bolt object
-                md.reset();
-                md.update(boltS3ResponseBytes.asByteArray());
-                boltS3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
+            while ((len = gis.read(buffer)) > 0) {
+                output.write(buffer, 0, len);
             }
 
-            Map<String,String> map = new HashMap<String, String>() {{
-                put("s3-md5", s3Md5);
-                put("bolt-md5", boltS3Md5);
-            }};
-            return map;
-        } catch (NoSuchAlgorithmException e) {
-            String msg = e.toString();
-            System.err.println(msg);
-            Map<String,String> map = new HashMap<String, String>() {{
-                put("errorMessage", msg);
-            }};
-            return map;
+            md.update(output.toByteArray());
+            s3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
+            output.close();
+            gis.close();
+
+            // MD5 of the Bolt object after gzip decompression.
+            gis = new GZIPInputStream(boltS3ResponseBytes.asInputStream());
+            output = new ByteArrayOutputStream();
+
+            while ((len = gis.read(buffer)) > 0) {
+                output.write(buffer, 0, len);
+            }
+
+            md.reset();
+            md.update(output.toByteArray());
+            boltS3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
+            output.close();
+            gis.close();
+        } else  {
+            // MD5 of the S3 object
+            md.update(s3ResponseBytes.asByteArray());
+            s3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
+
+            //MD5 of the Bolt object
+            md.reset();
+            md.update(boltS3ResponseBytes.asByteArray());
+            boltS3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
         }
-        catch (IOException e) {
-            String msg = e.toString();
-            System.err.println(msg);
-            Map<String,String> map = new HashMap<String, String>() {{
-                put("errorMessage", msg);
-            }};
-            return map;
-        }
+
+        Map<String,String> map = new HashMap<String, String>() {{
+            put("s3-md5", s3Md5);
+            put("bolt-md5", boltS3Md5);
+        }};
+        return map;
     }
 }
