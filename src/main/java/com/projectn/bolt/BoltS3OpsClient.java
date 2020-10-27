@@ -1,15 +1,12 @@
 package com.projectn.bolt;
 
 import software.amazon.awssdk.core.ResponseBytes;
-import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +18,9 @@ public class BoltS3OpsClient {
         HEAD_OBJECT,
         GET_OBJECT,
         LIST_OBJECTS_V2,
-        VALIDATE_OBJECT_MD5
+        VALIDATE_OBJECT_MD5,
+        LIST_BUCKETS,
+        HEAD_BUCKET
     }
 
     enum SdkType {
@@ -66,6 +65,12 @@ public class BoltS3OpsClient {
                     break;
                 case VALIDATE_OBJECT_MD5:
                     respMap = validateObjectMD5(event.get("bucket"), event.get("key"));
+                    break;
+                case LIST_BUCKETS:
+                    respMap = listBuckets();
+                    break;
+                case HEAD_BUCKET:
+                    respMap = headBucket(event.get("bucket"));
                     break;
                 default:
                     respMap = new HashMap<>();
@@ -223,6 +228,36 @@ public class BoltS3OpsClient {
         Map<String,String> map = new HashMap<String, String>() {{
             put("s3-md5", s3Md5);
             put("bolt-md5", boltS3Md5);
+        }};
+        return map;
+    }
+
+    private Map<String, String> listBuckets() throws Exception {
+
+        ListBucketsRequest listBucketsRequest = ListBucketsRequest.builder().build();
+        ListBucketsResponse resp;
+
+        resp = s3.listBuckets(listBucketsRequest);
+
+        List<Bucket> buckets = resp.buckets();
+        Map<String,String> map = new HashMap<String, String>() {{
+            put("buckets", buckets.toString());
+        }};
+        return map;
+    }
+
+    private Map<String, String> headBucket(String bucket) throws Exception {
+
+        HeadBucketRequest headBucketRequest = HeadBucketRequest.builder().bucket(bucket).build();
+
+        HeadBucketResponse res = s3.headBucket(headBucketRequest);
+        Map<String, List<String>> resHeaders = res.sdkHttpResponse().headers();
+        String bucketRegion = resHeaders.get("x-amz-bucket-region") != null ?
+                resHeaders.get("x-amz-bucket-region").get(0) : "";
+        Map<String,String> map = new HashMap<String, String>() {{
+            put("statusCode", String.valueOf(res.sdkHttpResponse().statusCode()));
+            put("statusText", res.sdkHttpResponse().statusText().orElse(""));
+            put("region", bucketRegion);
         }};
         return map;
     }
