@@ -1,0 +1,33 @@
+plugins {
+    id 'java'
+}
+
+group 'com.projectn.bolt'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+dependencies {
+    implementation 'com.amazonaws:aws-lambda-java-core:1.2.1'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.3.1'
+    runtimeOnly 'com.amazonaws:aws-lambda-java-log4j2:1.2.0'
+    implementation 'javax.xml.bind:jaxb-api:2.4.0-b180830.0359'
+    implementation files('../projectn-bolt-java/build/libs/bolt-java-sdk-1.0.jar')
+}
+
+task buildZip(type: Zip) {
+    archiveFileName = "bolt-java-lambda-demo.zip"
+
+    from compileJava
+    from processResources
+    into('lib') {
+        from configurations.runtimeClasspath
+    }
+}
