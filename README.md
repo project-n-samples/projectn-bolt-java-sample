@@ -16,7 +16,7 @@ These applications can be built using any of the standard Java IDEs
 #### Maven
 * Maven is the recommended way to build and deploy the Java AWS Lambda applications for Bolt.
 
-* Install the Java SDK for Bolt by following instructions given [here](https://gitlab.com/projectn-oss/projectn-bolt-java-sample#maven)
+* Install the Java SDK for Bolt by following instructions given [here](https://gitlab.com/projectn-oss/projectn-bolt-java#maven)
 
 * Download the source and build the deployment package (jar):
 
@@ -27,7 +27,7 @@ mvn clean package
 ```
 
 #### Gradle
-* Install the Java SDK for Bolt by following instructions given [here](https://gitlab.com/projectn-oss/projectn-bolt-java-sample#gradle)
+* Install the Java SDK for Bolt by following instructions given [here](https://gitlab.com/projectn-oss/projectn-bolt-java#gradle)
 
 * Download the source, in the same root directory containing Java SDK for Bolt, and build the deployment package (zip):
 
@@ -41,7 +41,7 @@ gradle buildZip
 
 * Deploy the function to AWS Lambda by uploading the deployment package 
 
-* Depending on the build methodology used, replace the <path-to-deployment package> by the following:
+* Depending on the build methodology used, replace the `<path-to-deployment package>` by the following:
   * Maven: target/bolt-java-lambda-demo.jar
   * Gradle: build/distributions/bolt-java-lambda-demo.zip
 
