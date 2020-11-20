@@ -18,7 +18,6 @@ public class BoltS3OpsClient {
         HEAD_OBJECT,
         GET_OBJECT,
         LIST_OBJECTS_V2,
-        VALIDATE_OBJECT_MD5,
         LIST_BUCKETS,
         HEAD_BUCKET
     }
@@ -29,10 +28,9 @@ public class BoltS3OpsClient {
     }
 
     private S3Client s3;
-    private S3Client boltS3;
 
     public BoltS3OpsClient() {
-        s3 = boltS3 = null;
+        s3 = null;
     }
 
     public Map<String, String> processEvent(Map<String, String> event) {
@@ -42,13 +40,11 @@ public class BoltS3OpsClient {
         BoltS3OpsClient.SdkType sdkType = (sdkTypeStr != null && !sdkTypeStr.isEmpty()) ?
                 SdkType.valueOf(sdkTypeStr.toUpperCase()) : null;
 
-        if (sdkType == null) {
+        // If sdkType is not specified, create an S3 Client.
+        if (sdkType == null || sdkType == SdkType.S3) {
             s3 = S3Client.builder().build();
-            boltS3 = BoltS3Client.builder().build();
         } else if (sdkType == SdkType.BOLT) {
             s3 = BoltS3Client.builder().build();
-        } else if (sdkType == SdkType.S3) {
-            s3 = S3Client.builder().build();
         }
 
         Map<String,String> respMap;
@@ -62,9 +58,6 @@ public class BoltS3OpsClient {
                     break;
                 case HEAD_OBJECT:
                     respMap = headObject(event.get("bucket"), event.get("key"));
-                    break;
-                case VALIDATE_OBJECT_MD5:
-                    respMap = validateObjectMD5(event.get("bucket"), event.get("key"));
                     break;
                 case LIST_BUCKETS:
                     respMap = listBuckets();
@@ -162,72 +155,6 @@ public class BoltS3OpsClient {
             put( "ETag", res.eTag() );
             put( "VersionId", res.versionId() );
             put( "StorageClass", res.storageClass() != null ? res.storageClass().toString() : "" );
-        }};
-        return map;
-    }
-
-    private Map<String, String> validateObjectMD5(String bucket, String key) throws Exception {
-
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucket).key(key).build();
-
-        // Get Object from Bolt.
-        ResponseBytes<GetObjectResponse> boltS3ResponseBytes = boltS3.getObjectAsBytes(getObjectRequest);
-        // Get object from S3.
-        ResponseBytes<GetObjectResponse> s3ResponseBytes = s3.getObjectAsBytes(getObjectRequest);
-
-        // Parse the MD5 of the returned object
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        String s3Md5, boltS3Md5;
-
-        // If Object is gzip encoded, compute MD5 on the decompressed object.
-        String encoding = s3ResponseBytes.response().contentEncoding();
-        if ((encoding != null && encoding.equalsIgnoreCase("gzip")) ||
-                key.endsWith(".gz")) {
-            GZIPInputStream gis;
-            ByteArrayOutputStream output;
-            byte[] buffer = new byte[1024];
-            int len;
-
-            // MD5 of the S3 object after gzip decompression.
-            gis = new GZIPInputStream(s3ResponseBytes.asInputStream());
-            output = new ByteArrayOutputStream();
-
-            while ((len = gis.read(buffer)) > 0) {
-                output.write(buffer, 0, len);
-            }
-
-            md.update(output.toByteArray());
-            s3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
-            output.close();
-            gis.close();
-
-            // MD5 of the Bolt object after gzip decompression.
-            gis = new GZIPInputStream(boltS3ResponseBytes.asInputStream());
-            output = new ByteArrayOutputStream();
-
-            while ((len = gis.read(buffer)) > 0) {
-                output.write(buffer, 0, len);
-            }
-
-            md.reset();
-            md.update(output.toByteArray());
-            boltS3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
-            output.close();
-            gis.close();
-        } else  {
-            // MD5 of the S3 object
-            md.update(s3ResponseBytes.asByteArray());
-            s3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
-
-            //MD5 of the Bolt object
-            md.reset();
-            md.update(boltS3ResponseBytes.asByteArray());
-            boltS3Md5 = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
-        }
-
-        Map<String,String> map = new HashMap<String, String>() {{
-            put("s3-md5", s3Md5);
-            put("bolt-md5", boltS3Md5);
         }};
         return map;
     }
