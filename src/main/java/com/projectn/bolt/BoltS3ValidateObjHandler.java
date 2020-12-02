@@ -15,13 +15,34 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * BoltS3ValidateObjHandler is a handler class that encapsulates the handler function handleRequest, which performs
+ * data validation tests and is called by AWS Lambda when the function is invoked.
+ */
 public class BoltS3ValidateObjHandler implements RequestHandler<Map<String,String>, Map<String,String>> {
 
+    // Indicates if source bucket is cleaned post crunch.
     enum BucketClean {
+        // bucket is cleaned post crunch
         ON,
+        // bucket is not cleaned post crunch
         OFF
     }
 
+    /**
+     * handlerRequest is the handler function that is invoked by AWS Lambda to process an incoming event for
+     * performing data validation tests.
+     *
+     * handleRequest accepts the following input parameters as part of the event:
+     * 1) bucket - bucket name
+     * 2) key - key name
+     *
+     * handleRequest retrieves the object from Bolt and S3 (if BucketClean is OFF), computes and returns their
+     * corresponding MD5 hash. If the object is gzip encoded, object is decompressed before computing its MD5.
+     * @param event incoming event object
+     * @param context Lambda execution environment context object
+     * @return md5s of object retrieved from Bolt and S3.
+     */
     @Override
     public Map<String,String> handleRequest(Map<String,String> event, Context context) {
 

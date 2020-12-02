@@ -52,7 +52,7 @@ aws lambda create-function \
     --function-name <function-name> \
     --runtime java11 \
     --zip-file fileb://<path-to-deployment package> \
-    --handler com.projectn.bolt.BoltS3ListObjsV2Handler \
+    --handler com.projectn.bolt.BoltS3OpsHandler \
     --role <function-execution-role-ARN> \
     --environment "Variables={BOLT_URL=<Bolt-Service-Url>}" \
     --memory-size 512 \
