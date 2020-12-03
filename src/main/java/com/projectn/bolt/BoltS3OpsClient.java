@@ -1,6 +1,7 @@
 package com.projectn.bolt;
 
 import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
@@ -24,7 +25,9 @@ public class BoltS3OpsClient {
         GET_OBJECT,
         LIST_OBJECTS_V2,
         LIST_BUCKETS,
-        HEAD_BUCKET
+        HEAD_BUCKET,
+        PUT_OBJECT,
+        DELETE_OBJECT
     }
 
     // endpoints supported
@@ -78,6 +81,12 @@ public class BoltS3OpsClient {
                     break;
                 case HEAD_BUCKET:
                     respMap = headBucket(event.get("bucket"));
+                    break;
+                case PUT_OBJECT:
+                    respMap = putObject(event.get("bucket"), event.get("key"), event.get("value"));
+                    break;
+                case DELETE_OBJECT:
+                    respMap = deleteObject(event.get("bucket"), event.get("key"));
                     break;
                 default:
                     respMap = new HashMap<>();
@@ -231,6 +240,46 @@ public class BoltS3OpsClient {
             put("statusCode", String.valueOf(res.sdkHttpResponse().statusCode()));
             put("statusText", res.sdkHttpResponse().statusText().orElse(""));
             put("region", bucketRegion);
+        }};
+        return map;
+    }
+
+    /**
+     * Uploads an object to Bolt/S3.
+     * @param bucket bucket name
+     * @param key key name
+     * @param value object data
+     * @return metadata of object
+     * @throws Exception
+     */
+    private Map<String, String> putObject(String bucket, String key, String value) throws Exception {
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder().bucket(bucket).key(key).build();
+
+        PutObjectResponse res = s3.putObject(putObjectRequest, RequestBody.fromString(value));
+        Map<String,String> map = new HashMap<String,String>() {{
+           put("ETag", res.eTag());
+           put( "Expiration", res.expiration());
+           put( "VersionId", res.versionId());
+        }};
+        return map;
+    }
+
+    /**
+     * Delete an object from Bolt/S3
+     * @param bucket bucket name
+     * @param key key name
+     * @return status code
+     * @throws Exception
+     */
+    private Map<String, String> deleteObject(String bucket, String key) throws Exception {
+
+        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder().bucket(bucket).key(key).build();
+
+        DeleteObjectResponse res = s3.deleteObject(deleteObjectRequest);
+        Map<String,String> map = new HashMap<String,String>() {{
+            put("statusCode", String.valueOf(res.sdkHttpResponse().statusCode()));
+            put("statusText", res.sdkHttpResponse().statusText().orElse(""));
         }};
         return map;
     }

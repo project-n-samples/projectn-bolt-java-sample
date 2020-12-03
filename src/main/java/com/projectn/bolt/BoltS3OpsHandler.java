@@ -24,6 +24,8 @@ public class BoltS3OpsHandler implements RequestHandler<Map<String,String>, Map<
      *    c) head_object - head object
      *    d) head_bucket - head bucket
      *    e) get_object - get object (md5 hash)
+     *    f) put_object - upload object
+     *    g) delete_object - delete object
      *
      * 3) bucket - bucket name
      *
@@ -44,6 +46,12 @@ public class BoltS3OpsHandler implements RequestHandler<Map<String,String>, Map<
      *
      * e) Retrieve object (its MD5 Hash) from Bolt:
      *     {"requestType": "get_object", "sdkType": "BOLT", "bucket": "<bucket>", "key": "<key>"}
+     *
+     * f) Upload object to Bolt:
+     *     {"requestType": "put_object", "sdkType": "BOLT", "bucket": "<bucket>", "key": "<key>", "value": "<value>"}
+     *
+     * g) Delete object from Bolt:
+     *     {"requestType": "delete_object", "sdkType": "BOLT", "bucket": "<bucket>", "key": "<key>"}
      *
      * @param event incoming event object
      * @param context Lambda execution environment context object
