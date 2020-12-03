@@ -12,8 +12,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * BoltS3OpsClient processes AWS Lambda events that are received by the handler function
+ * BoltS3OpsHandler.handleRequest.
+ */
 public class BoltS3OpsClient {
 
+    // request types supported
     enum RequestType {
         HEAD_OBJECT,
         GET_OBJECT,
@@ -22,6 +27,7 @@ public class BoltS3OpsClient {
         HEAD_BUCKET
     }
 
+    // endpoints supported
     enum SdkType {
         BOLT,
         S3
@@ -33,6 +39,12 @@ public class BoltS3OpsClient {
         s3 = null;
     }
 
+    /**
+     * processEvent extracts the parameters (sdkType, requestType, bucket/key) from the event, uses those
+     * parameters to send an Object/Bucket CRUD request to Bolt/S3 and returns back an appropriate response.
+     * @param event incoming Lambda event object
+     * @return result of the requested operation returned by the endpoint (sdkType)
+     */
     public Map<String, String> processEvent(Map<String, String> event) {
 
         BoltS3OpsClient.RequestType requestType = RequestType.valueOf(event.get("requestType").toUpperCase());
@@ -40,6 +52,7 @@ public class BoltS3OpsClient {
         BoltS3OpsClient.SdkType sdkType = (sdkTypeStr != null && !sdkTypeStr.isEmpty()) ?
                 SdkType.valueOf(sdkTypeStr.toUpperCase()) : null;
 
+        // create an S3/Bolt Client depending on the 'sdkType'
         // If sdkType is not specified, create an S3 Client.
         if (sdkType == null || sdkType == SdkType.S3) {
             s3 = S3Client.builder().build();
@@ -47,6 +60,7 @@ public class BoltS3OpsClient {
             s3 = BoltS3Client.builder().build();
         }
 
+        // Perform an S3 / Bolt operation based on the input 'requestType'
         Map<String,String> respMap;
         try {
             switch (requestType) {
@@ -87,6 +101,14 @@ public class BoltS3OpsClient {
         return respMap;
     }
 
+    /**
+     * Gets the object from Bolt/S3, computes and returns the object's MD5 hash. If the object is gzip encoded, object
+     * is decompressed before computing its MD5.
+     * @param bucket bucket name
+     * @param key key name
+     * @return md5 hash of the object
+     * @throws Exception
+     */
     private Map<String, String> getObject(String bucket, String key) throws Exception {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
@@ -128,6 +150,12 @@ public class BoltS3OpsClient {
         return map;
     }
 
+    /**
+     * Returns a list of 1000 objects from the given bucket in Bolt/S3
+     * @param bucket bucket name
+     * @return list of first 1000 objects
+     * @throws Exception
+     */
     private Map<String, String> listObjectsV2(String bucket) throws Exception {
 
         ListObjectsV2Request req = ListObjectsV2Request.builder().bucket(bucket).build();
@@ -142,6 +170,13 @@ public class BoltS3OpsClient {
         return map;
     }
 
+    /**
+     * Retrieves the object's metadata from Bolt / S3.
+     * @param bucket bucket name
+     * @param key key name
+     * @return object metadata
+     * @throws Exception
+     */
     private Map<String, String> headObject(String bucket, String key) throws Exception {
 
         HeadObjectRequest headObjectRequest = HeadObjectRequest.builder().bucket(bucket).key(key).build();
@@ -159,6 +194,11 @@ public class BoltS3OpsClient {
         return map;
     }
 
+    /**
+     * Returns list of buckets owned by the sender of the request
+     * @return list of buckets
+     * @throws Exception
+     */
     private Map<String, String> listBuckets() throws Exception {
 
         ListBucketsRequest listBucketsRequest = ListBucketsRequest.builder().build();
@@ -173,6 +213,12 @@ public class BoltS3OpsClient {
         return map;
     }
 
+    /**
+     * Checks if the bucket exists in Bolt/S3.
+     * @param bucket bucket name
+     * @return status code and Region if the bucket exists
+     * @throws Exception
+     */
     private Map<String, String> headBucket(String bucket) throws Exception {
 
         HeadBucketRequest headBucketRequest = HeadBucketRequest.builder().bucket(bucket).build();
