@@ -69,9 +69,9 @@ specifying its inputs in JSON format.
 Please ensure that `Bolt` is deployed before testing the sample AWS lambda function. If you haven't deployed `Bolt`,
 follow the instructions given [here](https://xyz.projectn.co/installation-guide#estimate-savings) to deploy `Bolt`.
  
-#### Testing Bolt or S3 Operations
+#### Testing S3 API Operations with Bolt and S3
 
-`BoltS3OpsHandler` is the handler that enables the user to perform Bolt or S3 operations.
+`BoltS3OpsHandler` is the handler that enables the user to test S3 API operations with Bolt and S3.
 It sends a Bucket or Object request to Bolt or S3 and returns an appropriate response based on the parameters
 passed in as input.
 
@@ -150,6 +150,67 @@ If the object is gzip encoded, object is decompressed before computing its MD5.
     If the object is gzip encoded, object is decompressed before computing its MD5.
     ```json
     {"bucket": "<bucket>", "key": "<key>"}
+    ```
+
+#### Performance Tests
+
+`BoltS3PerfHandler` is the handler that enables the user to run Bolt or S3 Performance tests. It measures the
+performance of Bolt or S3 Operations and returns statistics based on the operation. Before using this
+handler, ensure that a source bucket has been crunched by `Bolt` with cleaner turned `OFF`. `Get, List Objects` tests
+are run using the first 1000 objects in the bucket and `Put Object` tests are run using objects of size `100 bytes`.
+`Delete Object` tests are run on objects that were created by the `Put Object` test.
+
+* BoltS3PerfHandler is a handler function that is invoked by AWS Lambda to process an incoming event
+  for Bolt/S3 Performance testing. To use this handler, change the handler of the Lambda function to
+  `com.projectn.bolt.BoltS3PerfHandler`
+
+
+* BoltS3PerfHandler accepts the following input parameters as part of the event:
+  * requestType - type of request / operation to be performed. The following requests are supported:
+    * list_objects_v2 - list objects
+    * get_object - get object
+    * get_object_ttfb - get object (first byte)
+    * get_object_passthrough - get object (via passthrough) of unmonitored bucket
+    * get_object_passthrough_ttfb - get object (first byte via passthrough) of unmonitored bucket
+    * put_object - upload object
+    * delete_object - delete object
+    * all - put, get, delete, list objects (default request if none specified)
+
+  * bucket - bucket name
+
+
+* Following are examples of events, for various requests, that can be used to invoke the handler.
+  * Measure List objects performance of Bolt / S3.
+    ```json
+    {"requestType": "list_objects_v2", "bucket": "<bucket>"}
+    ```
+  * Measure Get object performance of Bolt / S3.
+    ```json
+    {"requestType": "get_object", "bucket": "<bucket>"}
+    ```
+  * Measure Get object (first byte) performance of Bolt / S3.
+    ```json
+    {"requestType": "get_object_ttfb", "bucket": "<bucket>"}
+    ```
+  * Measure Get object passthrough performance of Bolt.
+    ```json
+    {"requestType": "get_object_passthrough", "bucket": "<unmonitored-bucket>"}
+    ```
+  * Measure Get object passthrough (first byte) performance of Bolt.
+    ```json
+    {"requestType": "get_object_passthrough_ttfb", "bucket": "<unmonitored-bucket>"}
+    ```
+  * Measure Put object performance of Bolt / S3.
+    ```json
+    {"requestType": "put_object", "bucket": "<bucket>"}
+    ```
+  * Measure Delete object performance of Bolt / S3.
+    ```json
+    {"requestType": "delete_object", "bucket": "<bucket>"}
+    ```
+  * Measure Put, Delete, Get, List objects performance of Bolt / S3.
+    ```json
+    {"requestType": "all", "bucket": "<bucket>"}
     ```
 
 ### Getting Help
