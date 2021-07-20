@@ -1,4 +1,4 @@
-package com.projectn.bolt;
+package com.gitlab.projectn_oss.bolt;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;

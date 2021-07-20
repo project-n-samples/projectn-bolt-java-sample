@@ -16,8 +16,6 @@ This function can be built using any of the standard Java IDEs
 #### Maven
 * Maven is the recommended way to build and deploy the Java AWS Lambda function for Bolt.
 
-* Install the Java SDK for Bolt by following instructions given [here](https://gitlab.com/projectn-oss/projectn-bolt-java#maven)
-
 * Download the source and build the deployment package (jar):
 
 ```bash
@@ -27,8 +25,6 @@ mvn clean package
 ```
 
 #### Gradle
-* Install the Java SDK for Bolt by following instructions given [here](https://gitlab.com/projectn-oss/projectn-bolt-java#gradle)
-
 * Download the source, in the same root directory containing Java SDK for Bolt, and build the deployment package (zip):
 
 ```bash
@@ -52,7 +48,7 @@ aws lambda create-function \
     --function-name <function-name> \
     --runtime java11 \
     --zip-file fileb://<path-to-deployment package> \
-    --handler com.projectn.bolt.BoltS3OpsHandler \
+    --handler com.gitlab.projectn_oss.bolt.BoltS3OpsHandler \
     --role <function-execution-role-ARN> \
     --environment "Variables={BOLT_URL=<Bolt-Service-Url>}" \
     --memory-size 512 \
@@ -136,7 +132,7 @@ If the object is gzip encoded, object is decompressed before computing its MD5.
 
 * BoltS3ValidateObjHandler is a handler that is invoked by AWS Lambda to process an incoming event for performing 
   data validation tests. To use this handler, change the handler of the Lambda function to 
-  `com.projectn.bolt.BoltS3ValidateObjHandler`
+  `com.gitlab.projectn_oss.bolt.BoltS3ValidateObjHandler`
 
 
 * BoltS3ValidateObjHandler accepts the following input parameters as part of the event:
@@ -162,7 +158,7 @@ are run using the first 1000 objects in the bucket and `Put Object` tests are ru
 
 * BoltS3PerfHandler is a handler function that is invoked by AWS Lambda to process an incoming event
   for Bolt/S3 Performance testing. To use this handler, change the handler of the Lambda function to
-  `com.projectn.bolt.BoltS3PerfHandler`
+  `com.gitlab.projectn_oss.bolt.BoltS3PerfHandler`
 
 
 * BoltS3PerfHandler accepts the following input parameters as part of the event:
@@ -225,7 +221,7 @@ the time taken to do so.
 
 * BoltAutoHealHandler is a handler function that is invoked by AWS Lambda to process an incoming event
   for performing Auto-Heal testing.  To use this handler, change the handler of the Lambda function to
-  `com.projectn.bolt.BoltAutoHealHandler`.
+  `com.gitlab.projectn_oss.bolt.BoltAutoHealHandler`.
 
 * BoltAutoHealHandler accepts the following input parameters as part of the event:
   * bucket - bucket name
