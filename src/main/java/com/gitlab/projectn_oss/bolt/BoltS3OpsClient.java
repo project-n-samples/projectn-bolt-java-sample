@@ -1,4 +1,4 @@
-package com.projectn.bolt;
+package com.gitlab.projectn_oss.bolt;
 
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
